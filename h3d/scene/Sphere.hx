@@ -43,7 +43,7 @@ class Sphere extends Graphics {
 		circle(function(i, c, s) return seg(i, c, 0, s));
 	}
 
-	override function getLocalCollider() {
+	override function getLocalCollider( group = 0 ) {
 		return null;
 	}
 

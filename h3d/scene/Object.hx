@@ -211,6 +211,9 @@ class Object {
 	var qRot : h3d.Quat;
 	var posChanged(get,set) : Bool;
 
+	static var usePrimitiveCollider : Bool = true;
+	var colliders : Array<h3d.col.Collider>;
+
 	/**
 		Follow a given object or joint as if it was our parent. Ignore defaultTransform when set.
 	**/
@@ -676,15 +679,15 @@ class Object {
 		Build and return the global absolute recursive collider for the object.
 		Returns null if no collider was found or if ignoreCollide was set to true.
 	**/
-	final public function getCollider() : h3d.col.Collider {
+	final public function getCollider( group = 0 ) : h3d.col.Collider {
 		if( ignoreCollide )
 			return null;
 		var colliders = [];
-		var col = getGlobalCollider();
+		var col = getGlobalCollider(group);
 		if( col != null )
 			colliders.push(col);
 		for( obj in children ) {
-			var c = obj.getCollider();
+			var c = obj.getCollider(group);
 			if( c == null ) continue;
 			var cgrp = Std.downcast(c, h3d.col.Collider.GroupCollider);
 			if( cgrp != null ) {
@@ -703,10 +706,10 @@ class Object {
 	/**
 		Same as getLocalCollider, but returns an absolute collider instead of a local one.
 	**/
-	public function getGlobalCollider() : h3d.col.Collider {
+	public function getGlobalCollider( group = 0 ) : h3d.col.Collider {
 		if(ignoreCollide)
 			return null;
-		var col = getLocalCollider();
+		var col = getLocalCollider(group);
 		return col == null ? null : new h3d.col.ObjectCollider(this, col);
 	}
 
@@ -714,8 +717,13 @@ class Object {
 		Build and returns the local relative not-recursive collider for the object, or null if this object does not have a collider.
 		Does not check for ignoreCollide.
 	**/
-	public function getLocalCollider() : h3d.col.Collider {
-		return null;
+	public function getLocalCollider( group = 0 ) : h3d.col.Collider {
+		return colliders == null ? null : colliders[group];
+	}
+
+	public function setLocalCollider( group = 0, col : h3d.col.Collider ) {
+		if( colliders == null ) colliders = [];
+		colliders[group] = col;
 	}
 
 	function draw( ctx : RenderContext ) {

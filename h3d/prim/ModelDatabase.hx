@@ -293,6 +293,12 @@ class ModelDatabase {
 		Reflect.setField(data, DYN_BONES_CONFIG, dynamicJoints);
 	}
 
+	function loadCollideConfig( input : ModelDataInput, data : Dynamic ) {
+		if( !Reflect.hasField(data, "collide") || input.hmd == null)
+			return;
+		@:privateAccess input.hmd.collideConfig = Reflect.field(data, "collide");
+	}
+
 	function saveCollideConfig( input : ModelDataInput, data : Dynamic ) {
 		if ( !Reflect.hasField(input.collide, COLLIDE_CONFIG) )
 			Reflect.deleteField(data, COLLIDE_CONFIG);
@@ -318,6 +324,7 @@ class ModelDatabase {
 
 		loadLodConfig(input, data);
 		loadDynamicBonesConfig(input, data);
+		loadCollideConfig(input, data);
 	}
 
 	public function saveModelProps( input : ModelDataInput ) {

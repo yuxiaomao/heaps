@@ -59,7 +59,7 @@ class ModelCache {
 		return m.lib.makeObject(texturePath -> loadTexture(res, texturePath));
 	}
 
-	public function loadCollider( res : hxd.res.Model ) {
+	public function loadCollider( res : hxd.res.Model ) : Array<h3d.col.TransformCollider> {
 		var m = loadLibraryData(res);
 		var lib = m.lib;
 		if( m.col == null ) {

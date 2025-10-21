@@ -44,6 +44,7 @@ class Library {
 	var cachedPrimitives : Array<h3d.prim.HMDModel>;
 	var cachedAnimations : Map<String, h3d.anim.Animation>;
 	var cachedSkin : Map<String, h3d.anim.Skin>;
+	var cachedColliders : Map<String, Array<h3d.col.Collider>>;
 
 	#if (sys || nodejs)
 	static var defaultModelConfigs : Map<String, h3d.prim.ModelDatabase.ModelProps> = new Map();
@@ -55,6 +56,7 @@ class Library {
 		cachedPrimitives = [];
 		cachedAnimations = new Map();
 		cachedSkin = new Map();
+		cachedColliders = new Map();
 	}
 
 	public function getData() {
@@ -439,6 +441,23 @@ class Library {
 		}
 	}
 
+	public function loadColliders( model : Model ) {
+		var id = model.getObjectName();
+		var cols = cachedColliders.get(id);
+		if( cols != null ) return cols;
+
+		if( model.isCollider() || model.isLOD() ) {
+			var cols = [];
+			cachedColliders.set(id, cols);
+			return cols;
+		}
+
+		return [];
+		// var colIdxs = model.colliders;
+		// if( model.collider != null && colIdxs == null )
+		// 	colIdxs = [model.collider];
+	}
+
 	#if !dataOnly
 	public function makeObject( ?loadTexture : String -> h3d.mat.Texture ) : h3d.scene.Object {
 		if( loadTexture == null )
@@ -454,14 +473,18 @@ class Library {
 				var prim = makePrimitive(m);
 				if (prim == null)
 					continue;
+				var cols = loadColliders(m);
 				if( m.skin != null ) {
 					var skinData = makeSkin(m.skin, header.geometries[m.geometry]);
 					skinData.primitive = prim;
 					obj = new h3d.scene.Skin(skinData, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
-				} else if( m.materials.length == 1 )
-					obj = new h3d.scene.Mesh(prim, makeMaterial(m, m.materials[0],loadTexture));
-				else
-					obj = new h3d.scene.MultiMaterial(prim, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
+				} else {
+					if( m.materials.length == 1 )
+						obj = new h3d.scene.Mesh(prim, makeMaterial(m, m.materials[0],loadTexture));
+					else
+						obj = new h3d.scene.MultiMaterial(prim, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
+					@:privateAccess obj.colliders = cols;
+				}
 			}
 			obj.name = m.getObjectName();
 			obj.defaultTransform = m.position.toMatrix();
@@ -488,6 +511,8 @@ class Library {
 
 			// Apply more specific config to object (config that is in model.props)
 			h3d.prim.ModelDatabase.current.loadModelProps(modelData);
+			trace("modelData" + modelData);
+			trace("collide Config" + @:privateAccess obj.colliders);
 		}
 
 		var o = objs[0];

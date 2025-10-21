@@ -63,7 +63,7 @@ class Capsule extends Graphics {
 		circle(function(i, c, s) return seg(i, c - length * 0.5, 0, s), 1.0, nsegments >> 1);
 	}
 
-	override function getLocalCollider() {
+	override function getLocalCollider( group = 0 ) {
 		return null;
 	}
 }

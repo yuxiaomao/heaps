@@ -16,6 +16,7 @@ class HMDModel extends MeshPrimitive {
 	var blendshape : Blendshape;
 	var lodConfig : Array<Float> = null;
 	var colliderData : ColliderData;
+	var collideConfig : Array<hxd.fmt.fbx.HMDOut.CollideParams> = null;
 
 	public function new( model : hxd.fmt.hmd.Data.Model, dataPos, lib, lods : Array<hxd.fmt.hmd.Data.Model> = null ) {
 		this.model = model;
@@ -298,7 +299,7 @@ class HMDModel extends MeshPrimitive {
 			poly.setData(buf.vertexes, buf.indexes);
 			if( collider == null )
 				collider = new h3d.col.Collider.OptimizedCollider(sphere, poly);
-		} else {
+		} else { // TODO: remove. We need it for collider display in hide for now
 			collider = colliderData.getCollider();
 		}
 		return collider;

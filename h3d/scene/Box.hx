@@ -32,7 +32,7 @@ class Box extends Graphics {
 		return b;
 	}
 
-	override function getLocalCollider() {
+	override function getLocalCollider( group = 0 ) {
 		return null;
 	}
 

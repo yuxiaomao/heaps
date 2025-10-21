@@ -5,6 +5,7 @@ import hxd.fmt.hmd.Data;
 import hxd.BufferFormat;
 
 typedef CollideParams = {
+	?flags : Int,
 	?useDefault : Bool,
 	?precision : Float,
 	?maxSubdiv : Int,

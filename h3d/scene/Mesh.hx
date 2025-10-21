@@ -74,8 +74,10 @@ class Mesh extends Object {
 		return m;
 	}
 
-	override function getLocalCollider() : h3d.col.Collider {
-		return primitive.getCollider();
+	override function getLocalCollider( group = 0 ) : h3d.col.Collider {
+		if( Object.usePrimitiveCollider )
+			return primitive.getCollider();
+		return super.getLocalCollider(group);
 	}
 
 	var curScreenRatio : Float = 1.0;
