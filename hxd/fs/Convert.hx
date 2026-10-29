@@ -327,17 +327,17 @@ class ConvertFBX2HMD extends Convert {
 		save(out.getBytes());
 	}
 
-	static var fileCache = new Map<String, { time : Float, size : Int, value : Dynamic }>();
+	static var fileCache = new Map<String, { time : Float, milliseconds : Null<Int>, size : Int, value : Dynamic }>();
 
 	static function getCachedFile<T>( path : String, build : haxe.io.Bytes -> T ) : Null<T> {
 		if( !hxd.File.exists(path) )
 			return null;
 		var stat = @:privateAccess hxd.fs.FileConverter.statTimeAndSize(path);
 		var cached = fileCache.get(path);
-		if( cached != null && cached.time == stat.time && cached.size == stat.size )
+		if( cached != null && @:privateAccess hxd.fs.FileConverter.sameTimeAndSize(cached, stat) )
 			return cached.value;
 		var value = build(hxd.File.getBytes(path));
-		fileCache.set(path, { time : stat.time, size : stat.size, value : value });
+		fileCache.set(path, { time : stat.time, milliseconds : stat.milliseconds, size : stat.size, value : value });
 		return value;
 	}
 

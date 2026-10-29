@@ -27,17 +27,25 @@ typedef ConvertCommand = {
 typedef ConvertCacheItem = {
 	out : String,
 	ver : Null<Int>,
-	time : Int,
+	time : Float,
+	milliseconds : Null<Int>,
 	size : Int,
 	hash : String,
 	localParamsHash : Null<String>,
 	localContextJson : Null<String>,
 }
 
+typedef FileTimeAndSize = {
+	time : Float,
+	milliseconds : Null<Int>,
+	size : Int,
+}
+
 class FileConverter {
 
 	// Date implementation has a second resolution on some platforms.
 	public static final FILE_TIME_PRECISION = 1000;
+	static final HAS_MS = #if (hl || nodejs) Date.fromTime(1).getTime() == 1 #else false #end;
 	public static var CACHE_SAVE_MAX_PENDING = 50;
 
 	public var configuration(default,null) : String;
@@ -137,12 +145,24 @@ class FileConverter {
 		return r1.pt.getIndex() - r2.pt.getIndex();
 	}
 
-	static function statTimeAndSize( path : String ) {
+	static function statTimeAndSize( path : String ) : FileTimeAndSize {
 		var s = sys.FileSystem.stat(path);
+		#if nodejs
+		// hxnodejs ctime is the change time, use creation time like other targets
+		var created = (cast s : js.node.fs.Stats).birthtime.getTime();
+		#else
+		var created = s.ctime.getTime();
+		#end
+		var t = Math.fround(hxd.Math.max(s.mtime.getTime(), created));
 		return {
-			time : hxd.Math.max(s.mtime.getTime(), s.ctime.getTime()),
+			time : Math.ffloor(t / FILE_TIME_PRECISION),
+			milliseconds : HAS_MS ? Std.int(t % FILE_TIME_PRECISION) : null,
 			size : s.size,
 		};
+	}
+
+	static inline function sameTimeAndSize( a : FileTimeAndSize, b : FileTimeAndSize ) {
+		return a.time == b.time && (a.milliseconds == null || b.milliseconds == null || a.milliseconds == b.milliseconds) && a.size == b.size;
 	}
 
 	function loadConvert( name : String ) {
@@ -346,6 +366,7 @@ class FileConverter {
 			match = {
 				out : outFile,
 				time : 0,
+				milliseconds : null,
 				size : 0,
 				hash : "",
 				ver: conv.version,
@@ -372,7 +393,8 @@ class FileConverter {
 
 		var fileStat = statTimeAndSize(fullPath);
 		var fileSize = fileStat.size;
-		var time = hxd.Math.floor(fileStat.time / FILE_TIME_PRECISION);
+		var time = fileStat.time;
+		var milliseconds = fileStat.milliseconds;
 		var alreadyGen = sys.FileSystem.exists(fullOutPath) && match.ver == conv.version #if disable_res_cache && false #end;
 
 		conv.params = params;
@@ -382,7 +404,7 @@ class FileConverter {
 		conv.originalFilename = e.name;
 		var hasLocalParams = conv.hasLocalParams();
 
-		var sameTimeAndSize = match.time == time && match.size == fileSize;
+		var sameTimeAndSize = FileConverter.sameTimeAndSize(match, fileStat);
 		if( alreadyGen && !hasLocalParams && match.localParamsHash == null && sameTimeAndSize ) {
 			conv.cleanup();
 			return; // not changed (time stamp)
@@ -409,8 +431,12 @@ class FileConverter {
 		var localContextJson = localContext == null ? null : haxe.Json.stringify(localContext);
 		if( alreadyGen && match.hash == hash && match.localParamsHash == localParamsHash ) {
 			conv.cleanup();
-			if( match.time != time || match.size != fileSize || match.localContextJson != localContextJson ) {
+			// same content: keep known milliseconds when this platform has none, unless the second changed
+			if( milliseconds == null && match.time == time )
+				milliseconds = match.milliseconds;
+			if( match.time != time || match.milliseconds != milliseconds || match.size != fileSize || match.localContextJson != localContextJson ) {
 				match.time = time;
+				match.milliseconds = milliseconds;
 				match.size = fileSize;
 				match.localContextJson = localContextJson;
 				saveCache();
@@ -432,6 +458,7 @@ class FileConverter {
 
 		match.ver = conv.version;
 		match.time = time;
+		match.milliseconds = milliseconds;
 		match.size = fileSize;
 		match.hash = hash;
 		match.localParamsHash = localParamsHash;
